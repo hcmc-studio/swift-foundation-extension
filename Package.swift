@@ -5,20 +5,25 @@ import PackageDescription
 
 let package = Package(
     name: "SwiftFoundationExtension",
-    platforms: [.iOS("15.0")],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "SwiftFoundationExtension",
-            targets: ["SwiftFoundationExtension"]),
+            targets: ["SwiftFoundationExtension"]
+        ),
+    ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-algorithms.git", .upToNextMajor(from: "1.1.0")),
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .target(
-            name: "SwiftFoundationExtension"),
+            name: "SwiftFoundationExtension",
+            dependencies: [
+                .product(name: "Algorithms", package: "swift-algorithms")
+            ]
+        ),
         .testTarget(
             name: "SwiftFoundationExtensionTests",
-            dependencies: ["SwiftFoundationExtension"]),
+            dependencies: ["SwiftFoundationExtension"]
+        ),
     ]
 )
