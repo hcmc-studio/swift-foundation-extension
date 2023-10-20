@@ -16,4 +16,12 @@ extension BinaryInteger {
     public func ceilIfEven() -> Self {
         self + (self & 1)
     }
+    
+    public func abs() -> Self {
+        if self < 0 {
+            return self * -1
+        } else {
+            return self
+        }
+    }
 }
