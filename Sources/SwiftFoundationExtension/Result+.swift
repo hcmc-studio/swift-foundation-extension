@@ -17,4 +17,32 @@ extension Result {
             return .failure(error)
         }
     }
+    
+    public func successOrNil() -> Success? {
+        switch self {
+        case .success(let success): return success
+        case .failure(_): return nil
+        }
+    }
+    
+    public func success(orElse transform: (Failure) -> Success) -> Success {
+        switch self {
+        case .success(let success): return success
+        case .failure(let failure): return transform(failure)
+        }
+    }
+    
+    public func failureOrNil() -> Failure? {
+        switch self {
+        case .success(_): return nil
+        case .failure(let failure): return failure
+        }
+    }
+    
+    public func failure(orElse transform: (Success) -> Failure) -> Failure {
+        switch self {
+        case .success(let success): return transform(success)
+        case .failure(let failure): return failure
+        }
+    }
 }
