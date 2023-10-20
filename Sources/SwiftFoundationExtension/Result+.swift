@@ -10,9 +10,16 @@ import Foundation
 extension Result {
     public static func wrap(throwable: () throws -> Success) -> Result<Success, any Error> {
         do {
-            let success = try throwable()
-            
-            return .success(success)
+            return .success(try throwable())
+        } catch let error {
+            return .failure(error)
+        }
+    }
+    
+    @available(iOS 13.0.0, *)
+    public static func wrap(throwable: () async throws -> Success) async -> Result<Success, any Error> {
+        do {
+            return .success(try await throwable())
         } catch let error {
             return .failure(error)
         }
