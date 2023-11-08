@@ -21,9 +21,5 @@ let package = Package(
                 .product(name: "Algorithms", package: "swift-algorithms")
             ]
         ),
-        .testTarget(
-            name: "SwiftFoundationExtensionTests",
-            dependencies: ["SwiftFoundationExtension"]
-        ),
     ]
 )
