@@ -241,6 +241,32 @@ extension RequestBuilder {
         session.dataTask(with: createRequest(), completionHandler: completionHandler)
     }
     
+    @available(macOS 10.15, *)
+    @available(iOS 13.0, *)
+    @discardableResult
+    public func dataTask<TDecoder, TDecodable>(
+        decoder: TDecoder,
+        type: TDecodable.Type,
+        completionHandler: @escaping (TDecodable?, URLResponse?, Error?) -> Void
+    ) -> URLSessionDataTask where
+        TDecoder: TopLevelDecoder,
+        TDecoder.Input == Data,
+        TDecodable: Decodable
+    {
+        dataTask { data, urlResponse, error in
+            if let data = data {
+                do {
+                    let decoded = try decoder.decode(type, from: data)
+                    completionHandler(decoded, urlResponse, error)
+                } catch {
+                    completionHandler(nil, urlResponse, error)
+                }
+            } else {
+                completionHandler(nil, urlResponse, error)
+            }
+        }
+    }
+    
     @discardableResult
     public func downloadTask() -> URLSessionDownloadTask {
         session.downloadTask(with: createRequest())
@@ -261,6 +287,33 @@ extension RequestBuilder {
         session.uploadTask(with: createRequest(), from: data, completionHandler: completionHandler)
     }
     
+    @available(macOS 10.15, *)
+    @available(iOS 13.0, *)
+    @discardableResult
+    public func uploadTask<TDecoder, TDecodable>(
+        from data: Data?,
+        decoder: TDecoder,
+        type: TDecodable.Type,
+        completionHandler: @escaping (TDecodable?, URLResponse?, Error?) -> Void
+    ) -> URLSessionDataTask where
+        TDecoder: TopLevelDecoder,
+        TDecoder.Input == Data,
+        TDecodable: Decodable
+    {
+        uploadTask(from: data) { data, urlResponse, error in
+            if let data = data {
+                do {
+                    let decoded = try decoder.decode(type, from: data)
+                    completionHandler(decoded, urlResponse, error)
+                } catch {
+                    completionHandler(nil, urlResponse, error)
+                }
+            } else {
+                completionHandler(nil, urlResponse, error)
+            }
+        }
+    }
+    
     @discardableResult
     public func uploadTask(fromFile url: URL) -> URLSessionUploadTask {
         session.uploadTask(with: createRequest(), fromFile: url)
@@ -270,31 +323,102 @@ extension RequestBuilder {
     public func uploadTask(fromFile url: URL, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionUploadTask {
         session.uploadTask(with: createRequest(), fromFile: url, completionHandler: completionHandler)
     }
+    
+    @available(macOS 10.15, *)
+    @available(iOS 13.0, *)
+    @discardableResult
+    public func uploadTask<TDecoder, TDecodable>(
+        fromFile url: URL,
+        decoder: TDecoder,
+        type: TDecodable.Type,
+        completionHandler: @escaping (TDecodable?, URLResponse?, Error?) -> Void
+    ) -> URLSessionDataTask where
+        TDecoder: TopLevelDecoder,
+        TDecoder.Input == Data,
+        TDecodable: Decodable
+    {
+        uploadTask(fromFile: url) { data, urlResponse, error in
+            if let data = data {
+                do {
+                    let decoded = try decoder.decode(type, from: data)
+                    completionHandler(decoded, urlResponse, error)
+                } catch {
+                    completionHandler(nil, urlResponse, error)
+                }
+            } else {
+                completionHandler(nil, urlResponse, error)
+            }
+        }
+    }
 }
 
 extension RequestBuilder {
-    @available(macOS 13.0, *)
+    @available(macOS 12.0, *)
     @available(iOS 15.0, *)
     public func data() async throws -> (Data, URLResponse) {
         try await session.data(for: createRequest())
     }
     
-    @available(macOS 13.0, *)
+    @available(macOS 12.0, *)
+    @available(iOS 15.0, *)
+    public func data<TDecoder, TDecodable>(
+        decoder: TDecoder,
+        type: TDecodable.Type
+    ) async throws -> (TDecodable, URLResponse) where
+        TDecoder: TopLevelDecoder,
+        TDecoder.Input == Data,
+        TDecodable: Decodable
+    {
+        let (data, urlResponse) = try await data()
+        return (try decoder.decode(type, from: data), urlResponse)
+    }
+    
+    @available(macOS 12.0, *)
     @available(iOS 15.0, *)
     public func download() async throws -> (URL, URLResponse) {
         try await session.download(for: createRequest())
     }
     
-    @available(macOS 13.0, *)
+    @available(macOS 12.0, *)
     @available(iOS 15.0, *)
     public func upload(from data: Data) async throws -> (Data, URLResponse) {
         try await session.upload(for: createRequest(), from: data)
     }
     
-    @available(macOS 13.0, *)
+    @available(macOS 12.0, *)
+    @available(iOS 15.0, *)
+    public func upload<TDecoder, TDecodable>(
+        from data: Data,
+        decoder: TDecoder,
+        type: TDecodable.Type
+    ) async throws -> (TDecodable, URLResponse) where
+        TDecoder: TopLevelDecoder,
+        TDecoder.Input == Data,
+        TDecodable: Decodable
+    {
+        let (data, urlResponse) = try await upload(from: data)
+        return (try decoder.decode(type, from: data), urlResponse)
+    }
+    
+    @available(macOS 12.0, *)
     @available(iOS 15.0, *)
     public func upload(fromFile url: URL) async throws -> (Data, URLResponse) {
         try await session.upload(for: createRequest(), fromFile: url)
+    }
+    
+    @available(macOS 12.0, *)
+    @available(iOS 15.0, *)
+    public func upload<TDecoder, TDecodable>(
+        fromFile url: URL,
+        decoder: TDecoder,
+        type: TDecodable.Type
+    ) async throws -> (TDecodable, URLResponse) where
+        TDecoder: TopLevelDecoder,
+        TDecoder.Input == Data,
+        TDecodable: Decodable
+    {
+        let (data, urlResponse) = try await upload(fromFile: url)
+        return (try decoder.decode(type, from: data), urlResponse)
     }
 }
 
