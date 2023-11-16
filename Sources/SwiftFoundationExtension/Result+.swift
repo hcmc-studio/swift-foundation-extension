@@ -17,6 +17,7 @@ extension Result {
     }
     
     @available(iOS 13.0.0, *)
+    @available(macOS 10.15.0, *)
     public static func wrap(throwable: () async throws -> Success) async -> Result<Success, any Error> {
         do {
             return .success(try await throwable())
