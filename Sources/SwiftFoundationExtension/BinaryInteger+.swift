@@ -1,5 +1,5 @@
 //
-//  BinaryInteger.swift
+//  BinaryInteger+.swift
 //
 //
 //  Created by Ji-Hwan Kim on 10/19/23.
