@@ -13,12 +13,14 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/apple/swift-algorithms.git", .upToNextMajor(from: "1.1.0")),
+        .package(url: "https://github.com/apple/swift-log.git", .upToNextMajor(from: "1.5.3")),
     ],
     targets: [
         .target(
             name: "SwiftFoundationExtension",
             dependencies: [
-                .product(name: "Algorithms", package: "swift-algorithms")
+                .product(name: "Algorithms", package: "swift-algorithms"),
+                .product(name: "Logging", package: "swift-log")
             ]
         ),
     ]

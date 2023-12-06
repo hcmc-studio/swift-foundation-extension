@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import Logging
 
 public struct RequestBuilder {
     public var session: URLSession
@@ -14,18 +15,21 @@ public struct RequestBuilder {
     public var method: HttpMethod
     public var headers: [String : String?]
     public var body: Data?
+    public var logger: Logger?
     
     public init(
         session: URLSession = .shared,
         url: URL,
         method: HttpMethod,
         headers: [String : String?] = [:],
-        body: Data? = nil
+        body: Data? = nil,
+        logger: Logger? = nil
     ) {
         self.session = session
         self.url = url
         self.method = method
         self.headers = headers
+        self.logger = logger
     }
     
     public init(
@@ -34,13 +38,15 @@ public struct RequestBuilder {
         url: URL? = nil,
         method: HttpMethod? = nil,
         headers: [String : String?]? = nil,
-        body: Data? = nil
+        body: Data? = nil,
+        logger: Logger? = nil
     ) {
         self.session = session ?? from.session
         self.url = url ?? from.url
         self.method = method ?? from.method
         self.headers = headers ?? from.headers
         self.body = body ?? from.body
+        self.logger = logger ?? from.logger
     }
 }
 
@@ -226,7 +232,34 @@ extension RequestBuilder {
             urlRequest.setValue(value, forHTTPHeaderField: name)
         }
         
+        logger?.trace(createRequestLogMessage(request: urlRequest))
+        
         return urlRequest
+    }
+    
+    private func createRequestLogMessage(request: URLRequest) -> Logger.Message {
+        var message = "==================================================\n" +
+            "< \(method.rawValue) \(url)"
+        if let headers = request.allHTTPHeaderFields {
+            for (name, value) in headers {
+                message += "< "
+                message += name
+                message += ": "
+                message += value
+                message += "\n"
+            }
+        } else {
+            message += "< (no header)\n"
+        }
+        if let body = request.httpBody,
+           let body = String(data: body, encoding: .utf8)
+        {
+            message += "<\n"
+            message += "< "
+            message += body
+        }
+        
+        return .init(stringLiteral: message)
     }
 }
 
