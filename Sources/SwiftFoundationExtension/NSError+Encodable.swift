@@ -1,5 +1,5 @@
 //
-//  NSError+Encodable.swift
+//  File.swift
 //  
 //
 //  Created by Ji-Hwan Kim on 12/6/23.
@@ -18,7 +18,9 @@ extension NSError: Encodable {
         try container.encode(localizedRecoveryOptions, forKey: .localizedRecoveryOptions)
         try container.encode(localizedRecoverySuggestion, forKey: .localizedRecoverySuggestion)
         try container.encode(helpAnchor, forKey: .helpAnchor)
-        if #available(macOS 11.3, *), !underlyingErrors.isEmpty {
+        if #available(macOS 11.3, iOS 14.5, *),
+           !underlyingErrors.isEmpty
+        {
             try container.encode(underlyingErrors.map({ underlyingError in underlyingError as NSError }), forKey: .underlyingErrors)
         }
     }
