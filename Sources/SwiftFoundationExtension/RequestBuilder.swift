@@ -232,6 +232,13 @@ extension RequestBuilder {
             urlRequest.setValue(value, forHTTPHeaderField: name)
         }
         
+        if let cookies = session.configuration.httpCookieStorage?.cookies {
+            let cookies = HTTPCookie.requestHeaderFields(with: cookies)
+            for (name, value) in cookies {
+                urlRequest.setValue(value, forHTTPHeaderField: name)
+            }
+        }
+        
         logger?.trace(createRequestLogMessage(request: urlRequest))
         
         return urlRequest
