@@ -239,7 +239,7 @@ extension RequestBuilder {
     
     private func createRequestLogMessage(request: URLRequest) -> Logger.Message {
         var message = "==================================================\n" +
-            "< \(method.rawValue) \(url)"
+            "< \(method.rawValue) \(url)\n"
         if let headers = request.allHTTPHeaderFields {
             for (name, value) in headers {
                 message += "< "
