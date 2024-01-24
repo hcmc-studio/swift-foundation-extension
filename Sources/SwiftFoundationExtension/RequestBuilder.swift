@@ -12,7 +12,7 @@ import Logging
 public struct RequestBuilder {
     public var session: URLSession
     public var url: URL
-    public var method: HttpMethod
+    public var method: HttpMethod!
     public var headers: [String : String?]
     public var body: Data?
     public var logger: Logger?
@@ -20,14 +20,16 @@ public struct RequestBuilder {
     public init(
         session: URLSession = .shared,
         url: URL,
-        method: HttpMethod,
+        method: HttpMethod? = nil,
         headers: [String : String?] = [:],
         body: Data? = nil,
         logger: Logger? = nil
     ) {
         self.session = session
         self.url = url
-        self.method = method
+        if let method = method {
+            self.method = method
+        }
         self.headers = headers
         self.logger = logger
     }
