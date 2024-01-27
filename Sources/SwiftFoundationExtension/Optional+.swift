@@ -23,4 +23,12 @@ extension Optional {
             return onNil
         }
     }
+    
+    public func orThrow(_ supplier: () -> Error) throws -> Wrapped {
+        if let self = self {
+            return self
+        } else {
+            throw supplier()
+        }
+    }
 }
