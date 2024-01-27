@@ -17,4 +17,13 @@ extension Collection {
     public func get(orElse index: Index, _ supplier: () -> Element) -> Element {
         return get(orNil: index) ?? supplier()
     }
+    
+    @inlinable
+    public func get(orThrow index: Index, _ supplier: () -> Error) throws -> Element {
+        if let element = get(orNil: index) {
+            return element
+        } else {
+            throw supplier()
+        }
+    }
 }
