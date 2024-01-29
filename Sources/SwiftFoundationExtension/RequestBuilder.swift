@@ -248,7 +248,8 @@ extension RequestBuilder {
     
     private func createRequestLogMessage(request: URLRequest) -> Logger.Message {
         var message = "==================================================\n" +
-            "< \(method.rawValue) \(url)\n"
+            "< \(method.rawValue) \(url)\n" +
+            "< Header:\n"
         if let headers = request.allHTTPHeaderFields {
             for (name, value) in headers {
                 message += "< "
@@ -263,142 +264,237 @@ extension RequestBuilder {
         if let body = request.httpBody,
            let body = String(data: body, encoding: .utf8)
         {
-            message += "<\n"
+            message += "< Body:\n"
             message += "< "
             message += body
         }
         
         return .init(stringLiteral: message)
     }
+    
+    private func createLogPrefix(response: URLResponse?) -> String {
+        var message = "==================================================\n" +
+            "> \(method.rawValue) \(url)\n" +
+            "> Header:\n"
+        if let response = response {
+            if let response = response as? HTTPURLResponse {
+                for (name, value) in response.allHeaderFields {
+                    message += "< "
+                    message += String(describing: name)
+                    message += ": "
+                    message += String(describing: value)
+                    message += "\n"
+                }
+            } else {
+                message += "> (not a HTTPURLResponse)\n"
+            }
+        } else {
+            message += "> (response == nil)\n"
+        }
+        
+        return message
+    }
+    
+    private func appendLog(responseMessage message: String, error: Error?) -> String {
+        var message = message
+        if let error = error {
+            message += "> Error:\n"
+            message += "> "
+            message += String(describing: error)
+        }
+        
+        return message
+    }
+    
+    private func createLogMessage(
+        data: Data?,
+        response: URLResponse?,
+        error: Error?
+    ) -> Logger.Message {
+        var message = createLogPrefix(response: response)
+        if let data = data {
+            if let string = String(data: data, encoding: .utf8) {
+                message += "> (Failed to decode: UTF8 data=\(string)\n"
+            } else {
+                message += "> (Failed to decode: RAW data=\(data)\n"
+            }
+        } else {
+            message += "> (data == nil)\n"
+        }
+        
+        return .init(stringLiteral: appendLog(responseMessage: message, error: error))
+    }
+    
+    @available(iOS 13.0, *)
+    private func createLogMessage<TDecoder, TDecodable>(
+        data: Data?,
+        decoder: TDecoder,
+        type: TDecodable.Type,
+        response: URLResponse?,
+        error: Error?
+    ) -> Logger.Message where
+        TDecoder: TopLevelDecoder,
+        TDecoder.Input == Data,
+        TDecodable: Decodable
+    {
+        var message = createLogPrefix(response: response)
+        if let data = data {
+            do {
+                let decoded = try decoder.decode(type, from: data)
+                message += "> Body:\n"
+                message += "> "
+                message += String(describing: decoded)
+            } catch {
+                if let string = String(data: data, encoding: .utf8) {
+                    message += "> (Failed to decode: UTF8 data=\(string)\n"
+                } else {
+                    message += "> (Failed to decode: RAW data=\(data)\n"
+                }
+            }
+        } else {
+            message += "> (data == nil)\n"
+        }
+        
+        return .init(stringLiteral: appendLog(responseMessage: message, error: error))
+    }
 }
 
-extension RequestBuilder {
-    @discardableResult
-    public func dataTask() -> URLSessionDataTask {
-        session.dataTask(with: createRequest())
-    }
-    
-    @discardableResult
-    public func dataTask(completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask {
-        session.dataTask(with: createRequest(), completionHandler: completionHandler)
-    }
-    
-    @available(macOS 10.15, *)
-    @available(iOS 13.0, *)
-    @discardableResult
-    public func dataTask<TDecoder, TDecodable>(
-        decoder: TDecoder,
-        type: TDecodable.Type,
-        completionHandler: @escaping (TDecodable?, URLResponse?, Error?) -> Void
-    ) -> URLSessionDataTask where
-        TDecoder: TopLevelDecoder,
-        TDecoder.Input == Data,
-        TDecodable: Decodable
-    {
-        dataTask { data, urlResponse, error in
-            if let data = data {
-                do {
-                    let decoded = try decoder.decode(type, from: data)
-                    completionHandler(decoded, urlResponse, error)
-                } catch {
-                    completionHandler(nil, urlResponse, error)
-                }
-            } else {
-                completionHandler(nil, urlResponse, error)
-            }
-        }
-    }
-    
-    @discardableResult
-    public func downloadTask() -> URLSessionDownloadTask {
-        session.downloadTask(with: createRequest())
-    }
-    
-    @discardableResult
-    public func downloadTask(completionHandler: @escaping (URL?, URLResponse?, Error?) -> Void) -> URLSessionDownloadTask {
-        session.downloadTask(with: createRequest(), completionHandler: completionHandler)
-    }
-    
-    @discardableResult
-    public func uploadTask(from data: Data) -> URLSessionUploadTask {
-        session.uploadTask(with: createRequest(), from: data)
-    }
-    
-    @discardableResult
-    public func uploadTask(from data: Data?, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionUploadTask {
-        session.uploadTask(with: createRequest(), from: data, completionHandler: completionHandler)
-    }
-    
-    @available(macOS 10.15, *)
-    @available(iOS 13.0, *)
-    @discardableResult
-    public func uploadTask<TDecoder, TDecodable>(
-        from data: Data?,
-        decoder: TDecoder,
-        type: TDecodable.Type,
-        completionHandler: @escaping (TDecodable?, URLResponse?, Error?) -> Void
-    ) -> URLSessionDataTask where
-        TDecoder: TopLevelDecoder,
-        TDecoder.Input == Data,
-        TDecodable: Decodable
-    {
-        uploadTask(from: data) { data, urlResponse, error in
-            if let data = data {
-                do {
-                    let decoded = try decoder.decode(type, from: data)
-                    completionHandler(decoded, urlResponse, error)
-                } catch {
-                    completionHandler(nil, urlResponse, error)
-                }
-            } else {
-                completionHandler(nil, urlResponse, error)
-            }
-        }
-    }
-    
-    @discardableResult
-    public func uploadTask(fromFile url: URL) -> URLSessionUploadTask {
-        session.uploadTask(with: createRequest(), fromFile: url)
-    }
-    
-    @discardableResult
-    public func uploadTask(fromFile url: URL, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionUploadTask {
-        session.uploadTask(with: createRequest(), fromFile: url, completionHandler: completionHandler)
-    }
-    
-    @available(macOS 10.15, *)
-    @available(iOS 13.0, *)
-    @discardableResult
-    public func uploadTask<TDecoder, TDecodable>(
-        fromFile url: URL,
-        decoder: TDecoder,
-        type: TDecodable.Type,
-        completionHandler: @escaping (TDecodable?, URLResponse?, Error?) -> Void
-    ) -> URLSessionDataTask where
-        TDecoder: TopLevelDecoder,
-        TDecoder.Input == Data,
-        TDecodable: Decodable
-    {
-        uploadTask(fromFile: url) { data, urlResponse, error in
-            if let data = data {
-                do {
-                    let decoded = try decoder.decode(type, from: data)
-                    completionHandler(decoded, urlResponse, error)
-                } catch {
-                    completionHandler(nil, urlResponse, error)
-                }
-            } else {
-                completionHandler(nil, urlResponse, error)
-            }
-        }
-    }
-}
+//extension RequestBuilder {
+//    @discardableResult
+//    public func dataTask(completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionDataTask {
+//        session.dataTask(with: createRequest()) { data, response, error in
+//            logger?.trace(createLogMessage(data: data, response: response, error: error))
+//            completionHandler(data, response, error)
+//        }
+//    }
+//    
+//    @available(macOS 10.15, *)
+//    @available(iOS 13.0, *)
+//    @discardableResult
+//    public func dataTask<TDecoder, TDecodable>(
+//        decoder: TDecoder,
+//        type: TDecodable.Type,
+//        completionHandler: @escaping (TDecodable?, URLResponse?, Error?) -> Void
+//    ) -> URLSessionDataTask where
+//        TDecoder: TopLevelDecoder,
+//        TDecoder.Input == Data,
+//        TDecodable: Decodable
+//    {
+//        session.dataTask(with: createRequest()) { data, response, error in
+//            logger?.trace(createLogMessage(data: data, decoder: decoder, type: type, response: response, error: error))
+//            if let data = data {
+//                do {
+//                    let decoded = try decoder.decode(type, from: data)
+//                    completionHandler(decoded, response, error)
+//                } catch {
+//                    completionHandler(nil, response, error)
+//                }
+//            } else {
+//                completionHandler(nil, response, error)
+//            }
+//        }
+//    }
+//    
+//    @discardableResult
+//    public func downloadTask(completionHandler: @escaping (URL?, URLResponse?, Error?) -> Void) -> URLSessionDownloadTask {
+//        session.downloadTask(with: createRequest()) { url, response, error in
+//            logger?.trace(createLogMessage(data: nil, response: response, error: error))
+//            completionHandler(url, response, error)
+//        }
+//    }
+//    
+//    @discardableResult
+//    public func uploadTask(from data: Data?, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionUploadTask {
+//        session.uploadTask(with: createRequest(), from: data) { data, response, error in
+//            logger?.trace(createLogMessage(data: data, response: response, error: error))
+//            completionHandler(data, response, error)
+//        }
+//    }
+//    
+//    @available(macOS 10.15, *)
+//    @available(iOS 13.0, *)
+//    @discardableResult
+//    public func uploadTask<TDecoder, TDecodable>(
+//        from data: Data?,
+//        decoder: TDecoder,
+//        type: TDecodable.Type,
+//        completionHandler: @escaping (TDecodable?, URLResponse?, Error?) -> Void
+//    ) -> URLSessionDataTask where
+//        TDecoder: TopLevelDecoder,
+//        TDecoder.Input == Data,
+//        TDecodable: Decodable
+//    {
+//        session.uploadTask(with: createRequest(), from: data) { data, response, error in
+//            logger?.trace(createLogMessage(data: data, decoder: decoder, type: type, response: response, error: error))
+//            if let data = data {
+//                do {
+//                    let decoded = try decoder.decode(type, from: data)
+//                    completionHandler(decoded, response, error)
+//                } catch {
+//                    completionHandler(nil, response, error)
+//                }
+//            } else {
+//                completionHandler(nil, response, error)
+//            }
+//        }
+//    }
+//    
+//    @discardableResult
+//    public func uploadTask(fromFile url: URL) -> URLSessionUploadTask {
+//        session.uploadTask(with: createRequest(), fromFile: url)
+//    }
+//    
+//    @discardableResult
+//    public func uploadTask(fromFile url: URL, completionHandler: @escaping (Data?, URLResponse?, Error?) -> Void) -> URLSessionUploadTask {
+//        session.uploadTask(with: createRequest(), fromFile: url) { data, response, error in
+//            logger?.trace(createLogMessage(data: data, response: response, error: error))
+//            completionHandler(data, response, error)
+//        }
+//    }
+//    
+//    @available(macOS 10.15, *)
+//    @available(iOS 13.0, *)
+//    @discardableResult
+//    public func uploadTask<TDecoder, TDecodable>(
+//        fromFile url: URL,
+//        decoder: TDecoder,
+//        type: TDecodable.Type,
+//        completionHandler: @escaping (TDecodable?, URLResponse?, Error?) -> Void
+//    ) -> URLSessionDataTask where
+//        TDecoder: TopLevelDecoder,
+//        TDecoder.Input == Data,
+//        TDecodable: Decodable
+//    {
+//        session.uploadTask(with: createRequest(), fromFile: url) { data, response, error in
+//            logger?.trace(createLogMessage(data: data, decoder: decoder, type: type, response: response, error: error))
+//            if let data = data {
+//                do {
+//                    let decoded = try decoder.decode(type, from: data)
+//                    completionHandler(decoded, response, error)
+//                } catch {
+//                    completionHandler(nil, response, error)
+//                }
+//            } else {
+//                completionHandler(nil, response, error)
+//            }
+//        }
+//    }
+//}
 
 extension RequestBuilder {
     @available(macOS 12.0, *)
     @available(iOS 15.0, *)
     public func data() async throws -> (Data, URLResponse) {
-        try await session.data(for: createRequest())
+        do {
+            let (data, response) = try await session.data(for: createRequest())
+            logger?.trace(createLogMessage(data: data, response: response, error: nil))
+            
+            return (data, response)
+        } catch {
+            logger?.trace(createLogMessage(data: nil, response: nil, error: error))
+            
+            throw error
+        }
     }
     
     @available(macOS 12.0, *)
@@ -411,20 +507,46 @@ extension RequestBuilder {
         TDecoder.Input == Data,
         TDecodable: Decodable
     {
-        let (data, urlResponse) = try await data()
-        return (try decoder.decode(type, from: data), urlResponse)
+        do {
+            let (data, response) = try await session.data(for: createRequest())
+            logger?.trace(createLogMessage(data: data, decoder: decoder, type: type, response: response, error: nil))
+            
+            return (try decoder.decode(type, from: data), response)
+        } catch {
+            logger?.trace(createLogMessage(data: nil, response: nil, error: error))
+            
+            throw error
+        }
     }
     
     @available(macOS 12.0, *)
     @available(iOS 15.0, *)
     public func download() async throws -> (URL, URLResponse) {
-        try await session.download(for: createRequest())
+        do {
+            let (url, response) = try await session.download(for: createRequest())
+            logger?.trace(createLogMessage(data: nil, response: response, error: nil))
+            
+            return (url, response)
+        } catch {
+            logger?.trace(createLogMessage(data: nil, response: nil, error: error))
+            
+            throw error
+        }
     }
     
     @available(macOS 12.0, *)
     @available(iOS 15.0, *)
     public func upload(from data: Data) async throws -> (Data, URLResponse) {
-        try await session.upload(for: createRequest(), from: data)
+        do {
+            let (data, response) = try await session.upload(for: createRequest(), from: data)
+            logger?.trace(createLogMessage(data: data, response: response, error: nil))
+            
+            return (data, response)
+        } catch {
+            logger?.trace(createLogMessage(data: nil, response: nil, error: error))
+            
+            throw error
+        }
     }
     
     @available(macOS 12.0, *)
@@ -438,14 +560,31 @@ extension RequestBuilder {
         TDecoder.Input == Data,
         TDecodable: Decodable
     {
-        let (data, urlResponse) = try await upload(from: data)
-        return (try decoder.decode(type, from: data), urlResponse)
+        do {
+            let (data, response) = try await session.upload(for: createRequest(), from: data)
+            logger?.trace(createLogMessage(data: data, decoder: decoder, type: type, response: response, error: nil))
+            
+            return (try decoder.decode(type, from: data), response)
+        } catch {
+            logger?.trace(createLogMessage(data: nil, response: nil, error: error))
+            
+            throw error
+        }
     }
     
     @available(macOS 12.0, *)
     @available(iOS 15.0, *)
     public func upload(fromFile url: URL) async throws -> (Data, URLResponse) {
-        try await session.upload(for: createRequest(), fromFile: url)
+        do {
+            let (data, response) = try await session.upload(for: createRequest(), fromFile: url)
+            logger?.trace(createLogMessage(data: data, response: response, error: nil))
+            
+            return (data, response)
+        } catch {
+            logger?.trace(createLogMessage(data: nil, response: nil, error: error))
+            
+            throw error
+        }
     }
     
     @available(macOS 12.0, *)
@@ -459,8 +598,16 @@ extension RequestBuilder {
         TDecoder.Input == Data,
         TDecodable: Decodable
     {
-        let (data, urlResponse) = try await upload(fromFile: url)
-        return (try decoder.decode(type, from: data), urlResponse)
+        do {
+            let (data, response) = try await session.upload(for: createRequest(), fromFile: url)
+            logger?.trace(createLogMessage(data: data, decoder: decoder, type: type, response: response, error: nil))
+            
+            return (try decoder.decode(type, from: data), response)
+        } catch {
+            logger?.trace(createLogMessage(data: nil, response: nil, error: error))
+            
+            throw error
+        }
     }
 }
 
