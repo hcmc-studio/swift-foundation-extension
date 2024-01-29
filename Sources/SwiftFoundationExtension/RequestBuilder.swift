@@ -279,7 +279,7 @@ extension RequestBuilder {
         if let response = response {
             if let response = response as? HTTPURLResponse {
                 for (name, value) in response.allHeaderFields {
-                    message += "< "
+                    message += "> "
                     message += String(describing: name)
                     message += ": "
                     message += String(describing: value)
