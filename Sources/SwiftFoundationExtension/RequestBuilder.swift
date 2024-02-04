@@ -394,14 +394,17 @@ extension RequestBuilder {
         do {
             decoded = try decoder.decode(type, from: data)
         } catch let error0 {
+            let decoded1: TDecodable1
             do {
-                throw try decoder.decode(fallbackType, from: data)
+                decoded1 = try decoder.decode(fallbackType, from: data)
             } catch let error1 {
                 let error = SwiftFoundationExtension.RequestBuilder.decodingError(error0: error0, error1: error1)
                 logger?.trace(createLogMessage(data: data, response: response, error: error))
                 
                 throw error
             }
+            
+            throw decoded1
         }
         
         logger?.trace(createLogMessage(data: data, response: response, error: nil))
@@ -472,14 +475,17 @@ extension RequestBuilder {
         do {
             decoded = try decoder.decode(type, from: data)
         } catch let error0 {
+            let decoded1: TDecodable1
             do {
-                throw try decoder.decode(fallbackType, from: data)
+                decoded1 = try decoder.decode(fallbackType, from: data)
             } catch let error1 {
                 let error = SwiftFoundationExtension.RequestBuilder.decodingError(error0: error0, error1: error1)
                 logger?.trace(createLogMessage(data: data, response: response, error: error))
                 
                 throw error
             }
+            
+            throw decoded1
         }
         
         logger?.trace(createLogMessage(data: data, response: response, error: nil))
@@ -550,14 +556,17 @@ extension RequestBuilder {
         do {
             decoded = try decoder.decode(type, from: data)
         } catch let error0 {
+            let decoded1: TDecodable1
             do {
-                throw try decoder.decode(fallbackType, from: data)
+                decoded1 = try decoder.decode(fallbackType, from: data)
             } catch let error1 {
                 let error = SwiftFoundationExtension.RequestBuilder.decodingError(error0: error0, error1: error1)
                 logger?.trace(createLogMessage(data: data, response: response, error: error))
                 
                 throw error
             }
+            
+            throw decoded1
         }
         
         logger?.trace(createLogMessage(data: data, response: response, error: nil))
