@@ -17,7 +17,7 @@ public struct SwiftFoundationExtension {
         
         public static let domain = SwiftFoundationExtension.domain + ".requestBuilder"
         
-        @available(iOS 14.5, *)
+        @available(iOS 14.5, macOS 11.3, *)
         public static func decodingError(error0: Error, error1: Error) -> NSError {
             .init(
                 domain: domain,
