@@ -113,7 +113,7 @@ extension RequestBuilder {
     
     @available(macOS 13.0, *)
     @available(iOS 13.0, *)
-    public mutating func set<TEncoder>(body: (any Encodable)?, encoder: TEncoder) throws where TEncoder : TopLevelEncoder, TEncoder.Output == Data {
+    public mutating func set<Body, TEncoder>(body: Body?, encoder: TEncoder) throws where Body : Encodable, TEncoder : TopLevelEncoder, TEncoder.Output == Data {
         guard let body = body else {
             self.body = nil
             return
@@ -217,7 +217,7 @@ extension RequestBuilder {
     
     @available(macOS 13.0, *)
     @available(iOS 13.0, *)
-    public func setting<TEncoder>(body: (any Encodable)?, encoder: TEncoder) throws -> RequestBuilder where TEncoder: TopLevelEncoder, TEncoder.Output == Data {
+    public func setting<Body, TEncoder>(body: Body?, encoder: TEncoder) throws -> RequestBuilder where Body: Encodable, TEncoder: TopLevelEncoder, TEncoder.Output == Data {
         var s = self
         try s.set(body: body, encoder: encoder)
         
@@ -261,12 +261,14 @@ extension RequestBuilder {
         } else {
             message += "< (no header)\n"
         }
-        if let body = request.httpBody,
-           let body = String(data: body, encoding: .utf8)
-        {
+        if let body = request.httpBody {
             message += "< Body:\n"
             message += "< "
-            message += body
+            if let body = String(data: body, encoding: .utf8) {
+                message += body
+            } else {
+                message += body.description
+            }
         }
         
         return .init(stringLiteral: message)
