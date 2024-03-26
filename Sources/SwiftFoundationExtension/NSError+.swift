@@ -12,6 +12,14 @@ extension NSError {
         self.init(domain: domain, code: code, userInfo: [NSUnderlyingErrorKey : error])
     }
     
+    public convenience init(domain: String, code: Int, underlyingOrNil error: (any Error)?) {
+        if let error {
+            self.init(domain: domain, code: code, underlying: error)
+        } else {
+            self.init(domain: domain, code: code)
+        }
+    }
+    
     @available(iOS 14.5, *)
     @available(macOS 11.3, *)
     public func forEachUnderlying(action: (NSError) -> Void?) -> Void? {
